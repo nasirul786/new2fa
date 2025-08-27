@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Authenticator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="screen active">
+            <div class="loading-content">
+                <div class="lottie-container" id="loading-lottie"></div>
+                <h2>Loading...</h2>
+            </div>
+        </div>
+
+        <!-- PIN Entry Screen -->
+        <div id="pin-screen" class="screen">
+            <div class="pin-content">
+                <div class="lottie-container" id="pin-lottie"></div>
+                <h2>Enter PIN</h2>
+                <p class="subtitle">Enter your 6-digit PIN to continue</p>
+                <div class="pin-display">
+                    <div class="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                </div>
+                <div class="pin-keyboard">
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="1">1</button>
+                        <button class="pin-key" data-key="2">2</button>
+                        <button class="pin-key" data-key="3">3</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="4">4</button>
+                        <button class="pin-key" data-key="5">5</button>
+                        <button class="pin-key" data-key="6">6</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="7">7</button>
+                        <button class="pin-key" data-key="8">8</button>
+                        <button class="pin-key" data-key="9">9</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key empty"></button>
+                        <button class="pin-key" data-key="0">0</button>
+                        <button class="pin-key backspace" data-key="backspace">
+                            <i class="fas fa-backspace"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Screen -->
+        <div id="main-screen" class="screen">
+            <div class="app-topbar">
+                <div class="user-block">
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">User</div>
+                        <div class="user-meta">
+                            <span>Last login: <span id="user-last-login">-</span></span>
+                            <span class="dot">•</span>
+                            <span>Created: <span id="user-created-at">-</span></span>
+                        </div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="settings-button" id="settings-button">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="add-button compact" id="add-button">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Account</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="timer-section">
+                    <div class="timer-bar">
+                        <div class="timer-progress"></div>
+                    </div>
+                    <div class="timer-text">
+                        <span id="timer-count">30</span>s
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accounts-container">
+                <div id="accounts-list" class="accounts-list">
+                    <!-- Accounts will be loaded here -->
+                </div>
+                
+                <div class="empty-state" id="empty-state">
+                    <div class="lottie-container" id="empty-lottie"></div>
+                    <h3>No accounts yet</h3>
+                    <p>Add your first 2FA account to get started</p>
+                </div>
+            </div>
+
+            <div class="bottom-actions" style="display:none"></div>
+        </div>
+
+        <!-- Add Method Screen -->
+        <div id="add-method-screen" class="screen">
+            <div class="add-method-content">
+                <div class="lottie-container" id="add-method-lottie"></div>
+                <h2>Add Account</h2>
+                <p class="subtitle">Choose how you want to add your 2FA account</p>
+                
+                <div class="method-buttons">
+                    <button class="method-button" id="scan-qr-button">
+                        <i class="fas fa-qrcode"></i>
+                        <span>Scan QR Code</span>
+                    </button>
+                    <button class="method-button" id="manual-entry-button">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Enter Manually</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Entry Screen -->
+        <div id="manual-entry-screen" class="screen">
+            <div class="manual-entry-content">
+                <div class="lottie-container" id="manual-entry-lottie"></div>
+                <h2>Enter Secret</h2>
+                <p class="subtitle">Enter the secret key from your service</p>
+                
+                <div class="form-group">
+                    <label for="secret-input">Secret Key</label>
+                    <input type="text" id="secret-input" placeholder="Enter secret key" class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Account Screen -->
+        <div id="account-form-screen" class="screen">
+            <div class="account-form-content">
+                <div class="lottie-container" id="account-form-lottie"></div>
+                <h2 id="account-form-title">Add New Account</h2>
+                <p class="subtitle">Enter additional account information</p>
+                
+                <div class="form-group">
+                    <label for="label-input">Label (required)</label>
+                    <input type="text" id="label-input" placeholder="e.g., john@example.com" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="service-input">Service</label>
+                    <input type="text" id="service-input" placeholder="e.g., Google" class="form-input">
+                </div>
+                
+                <div class="color-section">
+                    <label>Color</label>
+                    <div class="color-list">
+                        <div class="color-item active" data-color="#2196F3"></div>
+                        <div class="color-item" data-color="#4CAF50"></div>
+                        <div class="color-item" data-color="#FF9800"></div>
+                        <div class="color-item" data-color="#E91E63"></div>
+                        <div class="color-item" data-color="#F44336"></div>
+                        <div class="color-item" data-color="#00BCD4"></div>
+                        <div class="color-item custom-color" id="custom-color-picker">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="icon-section">
+                    <label>Icon</label>
+                    <div class="icon-list">
+                        <div class="icon-item active" data-icon="key">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="icon-item" data-icon="shield">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="icon-item" data-icon="lock">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="icon-item" data-icon="user">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="icon-item" data-icon="envelope">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="icon-item more-icons long" id="more-icons-button">
+                            <i class="fas fa-search"></i>
+                            <span>Browse More Icons</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="delete-section" id="delete-section" style="display: none;">
+                    <button class="delete-button" id="delete-account-button">
+                        <i class="fas fa-trash"></i>
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Browse Icons Screen -->
+        <div id="browse-icons-screen" class="screen">
+            <div class="browse-icons-content">
+                <h2>Browse Icons</h2>
+                <div class="search-container">
+                    <input type="text" id="icon-search" placeholder="Search icons..." class="form-input">
+                </div>
+                
+                <div class="lottie-container" id="browse-icons-lottie"></div>
+                <p class="icons-credit">
+                    Icons provided by <a href="https://simpleicons.org" target="_blank">Simple Icons</a>
+                </p>
+                <p class="search-hint">Enter search terms to list icons below</p>
+                
+                <div id="icons-grid" class="icons-grid">
+                    <!-- Icons will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen">
+            <div class="settings-content">
+                <h2>Settings</h2>
+                
+                <div class="settings-section">
+                    <h3>General</h3>
+                    <div class="settings-item" id="language-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-language"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Language</span>
+                                <span class="settings-item-value" id="current-language">English</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Security</h3>
+                    <div class="settings-item" id="password-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-lock"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Password</span>
+                                <span class="settings-item-value" id="password-status">Not Set</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
+                    <div class="settings-item" id="keep-unlocked-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-clock"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Keep Unlocked</span>
+                                <span class="settings-item-subtitle">Stay unlocked for 24 hours</span>
+                            </div>
+                            <button class="help-button" id="keep-unlocked-help">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+                        </div>
+                        <div class="toggle-switch" id="keep-unlocked-toggle">
+                            <input type="checkbox" id="keep-unlocked-checkbox">
+                            <label for="keep-unlocked-checkbox"></label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Account</h3>
+                    <div class="settings-item" id="accounts-count-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-users"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Accounts</span>
+                                <span class="settings-item-value" id="accounts-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-item" id="transfer-codes-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-exchange-alt"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Transfer Codes</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
+                    <div class="settings-item danger" id="remove-all-setting">
+                        <div class="settings-item-content">
+                            <i class="fas fa-trash"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">Remove All Accounts</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>About</h3>
+                    <div class="settings-item">
+                        <div class="settings-item-content">
+                            <i class="fas fa-info-circle"></i>
+                            <div class="settings-item-text">
+                                <span class="settings-item-title">App Version</span>
+                                <span class="settings-item-value">1.0.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Screen -->
+        <div id="password-screen" class="screen">
+            <div class="password-content">
+                <div class="lottie-container" id="password-lottie"></div>
+                <h2 id="password-title">Set Password</h2>
+                <p class="subtitle" id="password-subtitle">Create a 6-digit PIN to secure your accounts</p>
+                
+                <div class="pin-display">
+                    <div class="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                </div>
+                <div class="pin-keyboard">
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="1">1</button>
+                        <button class="pin-key" data-key="2">2</button>
+                        <button class="pin-key" data-key="3">3</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="4">4</button>
+                        <button class="pin-key" data-key="5">5</button>
+                        <button class="pin-key" data-key="6">6</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key" data-key="7">7</button>
+                        <button class="pin-key" data-key="8">8</button>
+                        <button class="pin-key" data-key="9">9</button>
+                    </div>
+                    <div class="pin-row">
+                        <button class="pin-key empty"></button>
+                        <button class="pin-key" data-key="0">0</button>
+                        <button class="pin-key backspace" data-key="backspace">
+                            <i class="fas fa-backspace"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Codes Screen -->
+        <div id="transfer-screen" class="screen">
+            <div class="transfer-content">
+                <div class="transfer-tabs">
+                    <button class="transfer-tab active" data-tab="link">Via Link</button>
+                    <button class="transfer-tab" data-tab="qr">Via QR</button>
+                </div>
+                
+                <div class="transfer-tab-content" id="link-tab">
+                    <div class="lottie-container" id="transfer-link-lottie"></div>
+                    <h2>Export via Link</h2>
+                    <p class="subtitle danger">This link will expire in 24 hours</p>
+                    
+                    <div class="export-link-container">
+                        <input type="text" id="export-link" readonly class="form-input">
+                        <button class="copy-button" id="copy-link-button">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="transfer-tab-content" id="qr-tab" style="display: none;">
+                    <h2>Export via QR Code</h2>
+                    <div class="qr-container">
+                        <div id="export-qr"></div>
+                    </div>
+                    <p class="qr-info">Scan this QR code with another device to import your accounts</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remove All Screen -->
+        <div id="remove-all-screen" class="screen">
+            <div class="remove-all-content">
+                <div class="lottie-container" id="remove-all-lottie"></div>
+                <h2>Remove All Accounts</h2>
+                <p class="subtitle danger">This action cannot be undone. All your 2FA accounts will be permanently deleted.</p>
+                
+                <div class="form-group">
+                    <label for="confirmation-input">Type "Yes, delete everything" to confirm</label>
+                    <input type="text" id="confirmation-input" placeholder="Yes, delete everything" class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Screen -->
+        <div id="import-screen" class="screen">
+            <div class="import-content">
+                <div class="lottie-container" id="import-lottie"></div>
+                <h2>Importing Accounts</h2>
+                <p class="subtitle" id="import-status">Processing import data...</p>
+                
+                <div class="import-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Picker Modal -->
+        <div id="color-picker-modal" class="modal">
+            <div class="modal-content">
+                <div class="color-picker-container">
+                    <canvas id="color-picker-canvas" width="300" height="300"></canvas>
+                    <div class="color-picker-controls">
+                        <input type="range" id="hue-slider" min="0" max="360" value="200">
+                        <div class="color-preview" id="color-preview"></div>
+                        <div class="color-picker-buttons">
+                            <button class="btn-secondary" id="cancel-color">Cancel</button>
+                            <button class="btn-primary" id="confirm-color">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
